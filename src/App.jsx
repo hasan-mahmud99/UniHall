@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Routes, Route, Navigate, Link } from 'react-router-dom'
 import { useAuth } from './context/AuthContext.jsx'
 import * as api from './lib/mockApi.js'
+import { getHallImage } from './lib/hallImages.js'
 import StudentDashboard from './pages/student/StudentDashboard.jsx'
 import AdminDashboard from './pages/admin/AdminDashboard.jsx'
 import Login from './pages/auth/Login.jsx'
@@ -60,13 +61,17 @@ function ProtectedRoute({ children, roles }) {
 
 export default function App() {
   const { user } = useAuth()
-  const hallImg = user?.hallId ? api.getHallById(user.hallId)?.img : ''
-  // Apply hall background for logged-in users
-  const bgStyle = hallImg ? { backgroundImage: `url(${hallImg})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}
+  const hallObj = user?.hallId ? api.getHallById(user.hallId) : null
+  const hallImg = getHallImage(hallObj)
+  // Apply hall background for logged-in users; ensure cover/center and fixed subtle overlay for readability
+  const bgStyle = hallImg
+    ? { backgroundImage: `url(${hallImg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
+    : {}
   return (
-    <div className="min-h-screen flex flex-col" style={bgStyle}>
+    <div className="min-h-screen flex flex-col relative" style={bgStyle}>
+      {hallImg && <div className="absolute inset-0 bg-black/30 pointer-events-none" aria-hidden="true" />}
       <Nav />
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 bg-white/80 backdrop-blur-md rounded-lg">
+      <main className="relative flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 py-6 bg-white/85 backdrop-blur-sm rounded-lg">
         <Routes>
           <Route index element={<Home />} />
           <Route path="/login" element={<Login />} />
@@ -142,39 +147,60 @@ export default function App() {
 function Home() {
   const { user } = useAuth()
   const [bg, setBg] = useState('')
+  // Ensure halls are seeded/normalized before first render reads them
+  api.ensureSeedData()
+  const allHalls = api.listHalls()
+  // Deduplicate by shortName and keep consistent order
+  const order = ['ASH','MUH','BKH','JSH','NFH']
+  const seen = new Set()
+  const halls = []
+  for (const h of allHalls) {
+    if (h && h.shortName && !seen.has(h.shortName)) { halls.push(h); seen.add(h.shortName) }
+  }
+  halls.sort((a,b) => order.indexOf(a.shortName) - order.indexOf(b.shortName))
   useEffect(() => {
-    const halls = api.listHalls()
-    const pick = halls[Math.floor(Math.random() * halls.length)]
-    setBg(pick?.img || '')
+  const pick = halls[Math.floor(Math.random() * halls.length)]
+    setBg(getHallImage(pick))
   }, [])
   const hallId = user?.hallId
   const notifications = hallId ? api.listNotifications({ hallId }) : api.listNotifications()
   return (
     <section className="grid gap-6">
-      <div className="relative overflow-hidden rounded-lg border min-h-[300px]">
-        {bg && <div className="absolute inset-0" style={{ backgroundImage: `url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/20" />
-        <div className="relative p-8 sm:p-12 text-white">
-          <h1 className="text-3xl sm:text-4xl font-semibold">UniHall – NSTU Hall Allotment System</h1>
-          <p className="mt-3 max-w-3xl text-white/90">
-            A transparent and efficient platform for NSTU hall seat applications and management.
-            Students apply and track status; admins manage forms, seat plans, notices, and complaints.
-          </p>
-          {!user && (
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link to="/login" className="px-5 py-2.5 bg-white text-gray-900 rounded shadow hover:shadow-md transition">Login</Link>
-              <Link to="/register" className="px-5 py-2.5 bg-brand-600 text-white rounded shadow hover:bg-brand-700 transition">Register (Students)</Link>
-            </div>
-          )}
-        </div>
+      <div className="bg-white border rounded-lg p-8 sm:p-10">
+        <h1 className="text-3xl sm:text-4xl font-semibold text-gray-900">UniHall – NSTU Hall Allotment System</h1>
+        <p className="mt-3 max-w-3xl text-gray-700">
+          A transparent and efficient platform for NSTU hall seat applications and management. Students apply and track status;
+          admins manage forms, seat plans, notices, and complaints.
+        </p>
+        {!user && (
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link to="/login" className="px-5 py-2.5 bg-brand-600 text-white rounded shadow hover:bg-brand-700 transition">Login</Link>
+            <Link to="/register" className="px-5 py-2.5 bg-white text-gray-900 border rounded shadow hover:shadow-md transition">Register (Students)</Link>
+          </div>
+        )}
       </div>
 
       <Ticker items={notifications.slice(-5).map(n => `${n.title}: ${n.body}`)} />
 
       <div className="grid md:grid-cols-3 gap-4">
-        <InfoCard icon="🏛️" title="NSTU Halls" desc="Five residential halls — two for male and three for female students." />
-        <InfoCard icon="📝" title="Dynamic Forms" desc="Hall admission forms can change every session without code changes." />
-        <InfoCard icon="🪑" title="Seat Management" desc="Admins can manage seats by status and assign beds per room." />
+        <InfoCard title="NSTU Halls" desc="Five residential halls — two for male and three for female students." />
+        <InfoCard title="Dynamic Forms" desc="Hall admission forms can change every session without code changes." />
+        <InfoCard title="Seat Management" desc="Admins can manage seats by status and assign beds per room." />
+      </div>
+
+      {/* Five Hall Panels (with images like Salam Hall) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        {halls.map(h => (
+          <Link key={h.id} to={user?.role === 'admin' && user?.hallId === h.id ? '/admin' : '#'} className="block group">
+            <div className="relative h-40 rounded-lg overflow-hidden border bg-gray-200">
+              <div className="absolute inset-0" style={{ backgroundImage: `url(${getHallImage(h)})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+              <div className="absolute inset-0 bg-black/35 group-hover:bg-black/25 transition-colors" />
+              <div className="relative p-3 text-white">
+                <div className="text-base sm:text-lg font-semibold leading-tight drop-shadow">{h.name}</div>
+              </div>
+            </div>
+          </Link>
+        ))}
       </div>
 
       <div className="bg-white border rounded-lg p-6 grid md:grid-cols-2 gap-6">
@@ -223,14 +249,11 @@ function Ticker({ items }) {
   )
 }
 
-function InfoCard({ icon, title, desc }) {
+function InfoCard({ title, desc }) {
   return (
-    <div className="bg-white border rounded p-4 flex gap-3 items-start shadow-sm">
-      <div className="text-2xl">{icon}</div>
-      <div>
-        <div className="font-medium">{title}</div>
-        <div className="text-sm text-gray-600">{desc}</div>
-      </div>
+    <div className="bg-white border rounded p-4 shadow-sm">
+      <div className="font-semibold text-gray-900">{title}</div>
+      <div className="text-sm text-gray-600 mt-1">{desc}</div>
     </div>
   )
 }

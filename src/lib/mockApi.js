@@ -27,37 +27,108 @@ function write(key, value) {
 }
 
 export function ensureSeedData() {
-  // Halls (5 total: 2 male, 3 female)
+  // NSTU Halls of Residence (official data from nstu.edu.bd)
+  const masterHalls = [
+    { id: 'hall-ash', name: 'Basha Shaheed Abdus Salam Hall', shortName: 'ASH', category: 'Male', capacity: 400, established: 2006,
+      localImg: '/halls/ASH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/ASH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1520637736862-4d197d17c155?w=800' },
+    { id: 'hall-muh', name: 'Bir Muktijuddha Abdul Malek Ukil Hall', shortName: 'MUH', category: 'Male', capacity: 350, established: 2010,
+      localImg: '/halls/MUH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/MUH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800' },
+    { id: 'hall-bkh', name: 'Hazrat Bibi Khadiza Hall', shortName: 'BKH', category: 'Female', capacity: 300, established: 2008,
+      localImg: '/halls/BKH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/BKH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800' },
+    { id: 'hall-jsh', name: 'July Shaheed Smriti Chhatri Hall', shortName: 'JSH', category: 'Female', capacity: 280, established: 2012,
+      localImg: '/halls/BMH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/JSH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800' },
+    { id: 'hall-nfh', name: 'Nabab Foyzunnessa Choudhurani Hall', shortName: 'NFH', category: 'Female', capacity: 320, established: 2014,
+      localImg: '/halls/FMH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/NFH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800' }
+  ]
   if (!read(KEYS.halls)) {
-    const halls = [
-      { id: 'hall-ash', name: 'Basha Shaheed Abdus Salam Hall', category: 'Male', img: 'https://nstu.edu.bd/assets/images/accommodation/ASH.jpg' },
-      { id: 'hall-bmau', name: 'Bir Muktijuddha Abdul Malek Ukil Hall', category: 'Male', img: 'https://nstu.edu.bd/assets/images/accommodation/AMU.jpg' },
-      { id: 'hall-hbk', name: 'Hazrat Bibi Khadiza Hall', category: 'Female', img: 'https://nstu.edu.bd/assets/images/accommodation/HBK.jpg' },
-      { id: 'hall-jsh', name: 'July Shaheed Smriti Chhatri Hall', category: 'Female', img: 'https://nstu.edu.bd/assets/images/accommodation/JSH.jpg' },
-      { id: 'hall-nfh', name: 'Nabab Foyzunnessa Choudhurani Hall', category: 'Female', img: 'https://nstu.edu.bd/assets/images/accommodation/NFH.jpg' }
-    ]
-    write(KEYS.halls, halls)
+    write(KEYS.halls, masterHalls)
+  }
+  // Normalize/upgrade existing halls to ensure local images and correct codes are set
+  let hallsNow = read(KEYS.halls, [])
+  if (Array.isArray(hallsNow) && hallsNow.length) {
+    let changed = false
+    // Normalize existing and ensure all master halls are present
+    const normalized = hallsNow.map(h => {
+      const sn = h.shortName || ''
+      const expectedLocal = sn === 'JSH' ? '/halls/BMH.jpg' : sn === 'NFH' ? '/halls/FMH.jpg' : (sn ? `/halls/${sn}.jpg` : (h.localImg || ''))
+      const expectedRemote = sn ? `https://nstu.edu.bd/assets/images/accommodation/${sn}.jpg` : (h.img || '')
+      const next = { ...h }
+      if (expectedLocal && next.localImg !== expectedLocal) { next.localImg = expectedLocal; changed = true }
+      if (expectedRemote && next.img !== expectedRemote) { next.img = expectedRemote; changed = true }
+      return next
+    })
+    
+    // Merge with master halls and deduplicate
+    const byShort = new Map()
+    const masterByShort = new Map(masterHalls.map(m => [m.shortName, m]))
+    
+    const combined = [...normalized, ...masterHalls]
+    combined.forEach(h => {
+      if (!h.shortName) return
+      const m = masterByShort.get(h.shortName) || {}
+      const merged = { ...m, ...h, id: m.id || h.id }
+      const prev = byShort.get(merged.shortName)
+      if (!prev || (merged.localImg && !prev.localImg)) {
+        byShort.set(merged.shortName, merged)
+      }
+    })
+    
+    const deduped = masterHalls.map(m => byShort.get(m.shortName)).filter(Boolean)
+    if (changed || deduped.length !== hallsNow.length) {
+      write(KEYS.halls, deduped)
+      changed = true
+    }
   }
   const existingUsers = read(KEYS.users)
   if (!existingUsers) {
     const halls = read(KEYS.halls, [])
     write(KEYS.users, [
-      { id: 'admin-1', name: 'Hall Admin (ASH)', email: 'admin@nstu.edu.bd', role: 'admin', hallId: halls[0]?.id, password: 'admin123' },
-      { id: 'exam-1', name: 'Exam Controller', email: 'exam@nstu.edu.bd', role: 'examcontroller', hallId: halls[0]?.id, password: 'exam123' },
-      { id: 'staff-1', name: 'Hall Staff', email: 'staff@nstu.edu.bd', role: 'staff', hallId: halls[0]?.id, password: 'staff123' }
+      // Admin credentials for each hall
+    { id: 'admin-ash', name: 'Admin - Abdus Salam Hall', email: 'admin.ash@nstu.edu.bd', role: 'admin', hallId: 'hall-ash', password: 'ash123' },
+    { id: 'admin-muh', name: 'Admin - Abdul Malek Ukil Hall', email: 'admin.muh@nstu.edu.bd', role: 'admin', hallId: 'hall-muh', password: 'muh123' },
+    { id: 'admin-bkh', name: 'Admin - Bibi Khadiza Hall', email: 'admin.bkh@nstu.edu.bd', role: 'admin', hallId: 'hall-bkh', password: 'bkh123' },
+      { id: 'admin-jsh', name: 'Admin - July Shaheed Hall', email: 'admin.jsh@nstu.edu.bd', role: 'admin', hallId: 'hall-jsh', password: 'jsh123' },
+      { id: 'admin-nfh', name: 'Admin - Foyzunnessa Hall', email: 'admin.nfh@nstu.edu.bd', role: 'admin', hallId: 'hall-nfh', password: 'nfh123' },
+      
+      // Student credentials for each hall
+    { id: 'student-ash', name: 'Ahmed Rahman', email: 'student.ash@nstu.edu.bd', role: 'student', hallId: 'hall-ash', password: 'student123' },
+    { id: 'student-muh', name: 'Karim Ahmed', email: 'student.muh@nstu.edu.bd', role: 'student', hallId: 'hall-muh', password: 'student123' },
+    { id: 'student-bkh', name: 'Fatima Khan', email: 'student.bkh@nstu.edu.bd', role: 'student', hallId: 'hall-bkh', password: 'student123' },
+      { id: 'student-jsh', name: 'Ayesha Ali', email: 'student.jsh@nstu.edu.bd', role: 'student', hallId: 'hall-jsh', password: 'student123' },
+      { id: 'student-nfh', name: 'Nasreen Begum', email: 'student.nfh@nstu.edu.bd', role: 'student', hallId: 'hall-nfh', password: 'student123' },
+
+      // Other roles
+      { id: 'exam-1', name: 'Exam Controller', email: 'exam@nstu.edu.bd', role: 'examcontroller', password: 'exam123' },
+      { id: 'staff-1', name: 'Hall Staff', email: 'staff@nstu.edu.bd', role: 'staff', hallId: 'hall-ash', password: 'staff123' }
     ])
   } else {
-    // Ensure the default NSTU admin exists even if previous seeds are present
+    // Ensure all hall admins exist
     const halls = read(KEYS.halls, [])
     const users = Array.isArray(existingUsers) ? existingUsers : []
-    const hasNstuAdmin = users.some(u => u.email === 'admin@nstu.edu.bd' && u.role === 'admin')
-    if (!hasNstuAdmin) {
-      users.push({ id: `admin-${Date.now()}`, name: 'Hall Admin (ASH)', email: 'admin@nstu.edu.bd', role: 'admin', hallId: halls[0]?.id, password: 'admin123' })
+    
+    // Add missing hall admins
+    const hallAdmins = [
+    { id: 'admin-ash', name: 'Admin - Abdus Salam Hall', email: 'admin.ash@nstu.edu.bd', role: 'admin', hallId: 'hall-ash', password: 'ash123' },
+    { id: 'admin-muh', name: 'Admin - Abdul Malek Ukil Hall', email: 'admin.muh@nstu.edu.bd', role: 'admin', hallId: 'hall-muh', password: 'muh123' },
+    { id: 'admin-bkh', name: 'Admin - Bibi Khadiza Hall', email: 'admin.bkh@nstu.edu.bd', role: 'admin', hallId: 'hall-bkh', password: 'bkh123' },
+      { id: 'admin-jsh', name: 'Admin - July Shaheed Hall', email: 'admin.jsh@nstu.edu.bd', role: 'admin', hallId: 'hall-jsh', password: 'jsh123' },
+      { id: 'admin-nfh', name: 'Admin - Foyzunnessa Hall', email: 'admin.nfh@nstu.edu.bd', role: 'admin', hallId: 'hall-nfh', password: 'nfh123' }
+    ]
+    
+    hallAdmins.forEach(admin => {
+      if (!users.some(u => u.email === admin.email)) {
+        users.push(admin)
+      }
+    })
+    
+    // Add other essential users if missing
+    if (!users.some(u => u.email === 'exam@nstu.edu.bd')) {
+      users.push({ id: `exam-${Date.now()}`, name: 'Exam Controller', email: 'exam@nstu.edu.bd', role: 'examcontroller', password: 'exam123' })
     }
-    const hasExam = users.some(u => u.email === 'exam@nstu.edu.bd' && u.role === 'examcontroller')
-    if (!hasExam) users.push({ id: `exam-${Date.now()}`, name: 'Exam Controller', email: 'exam@nstu.edu.bd', role: 'examcontroller', hallId: halls[0]?.id, password: 'exam123' })
-    const hasStaff = users.some(u => u.email === 'staff@nstu.edu.bd' && u.role === 'staff')
-    if (!hasStaff) users.push({ id: `staff-${Date.now()}`, name: 'Hall Staff', email: 'staff@nstu.edu.bd', role: 'staff', hallId: halls[0]?.id, password: 'staff123' })
+    if (!users.some(u => u.email === 'staff@nstu.edu.bd')) {
+      users.push({ id: `staff-${Date.now()}`, name: 'Hall Staff', email: 'staff@nstu.edu.bd', role: 'staff', hallId: 'hall-ash', password: 'staff123' })
+    }
+    
     write(KEYS.users, users)
   }
   if (!read(KEYS.forms)) {
@@ -76,27 +147,95 @@ export function ensureSeedData() {
     write(KEYS.forms, [defaultForm])
   }
   if (!read(KEYS.seats)) {
-    // Seed small seat maps for each hall: floors 1-2, rooms 101-103, 2 beds
+    // Seed different seat maps for each hall to make them look distinct
     const halls = read(KEYS.halls, [])
     const seats = []
-    for (const hall of halls) {
-      for (let floor = 1; floor <= 2; floor++) {
-        for (let room = 101; room <= 103; room++) {
-          for (let bed = 1; bed <= 2; bed++) {
-            seats.push({ id: `${hall.id}-${floor}-${room}-${bed}`, hallId: hall.id, floor, room, bed, status: 'Available', studentId: null })
+    halls.forEach((hall, idx) => {
+      // Each hall has different number of floors, rooms, and bed configurations
+      const floors = idx === 0 ? 3 : idx === 1 ? 4 : idx === 2 ? 2 : idx === 3 ? 3 : 2 // ASH:3, MUH:4, BKH:2, JSH:3, NFH:2
+      const roomsPerFloor = idx === 0 ? 4 : idx === 1 ? 5 : idx === 2 ? 3 : idx === 3 ? 4 : 3
+      const bedsPerRoom = idx % 2 === 0 ? 2 : 3 // Alternate 2 and 3 beds per room
+      
+      for (let floor = 1; floor <= floors; floor++) {
+        const roomStart = floor * 100 + 1
+        for (let room = roomStart; room < roomStart + roomsPerFloor; room++) {
+          for (let bed = 1; bed <= bedsPerRoom; bed++) {
+            // Vary the status to make halls look different
+            const statusOptions = ['Available', 'Available', 'Available', 'Occupied', 'Reserved']
+            const status = Math.random() > 0.7 ? statusOptions[3 + idx % 2] : 'Available'
+            seats.push({ 
+              id: `${hall.id}-${floor}-${room}-${bed}`, 
+              hallId: hall.id, 
+              floor, 
+              room, 
+              bed, 
+              status, 
+              studentId: status === 'Occupied' ? `student-${hall.shortName}-${Math.floor(Math.random()*100)}` : null 
+            })
           }
         }
       }
-    }
+    })
     write(KEYS.seats, seats)
   }
   if (!read(KEYS.notifications)) {
     const halls = read(KEYS.halls, [])
-    write(KEYS.notifications, [
-      { id: 'n1', title: 'Welcome to UniHall', body: 'Admission form is now open.', date: Date.now(), hallId: halls[0]?.id }
-    ])
+    const notifications = []
+    halls.forEach((hall, idx) => {
+      // Different notifications for each hall
+      const notifContent = [
+        { title: 'Admission Open', body: 'Hall admission applications are now being accepted for the new session.' },
+        { title: 'Seat Allocation Complete', body: 'Room assignments have been posted. Check your dashboard.' },
+        { title: 'Maintenance Notice', body: 'Scheduled maintenance on 2nd floor next week.' },
+        { title: 'Cultural Program', body: 'Annual cultural program registration is now open.' },
+        { title: 'Fee Reminder', body: 'Hall fees for this semester are due by end of month.' }
+      ]
+      const content = notifContent[idx % notifContent.length]
+      notifications.push({ 
+        id: `n-${hall.id}`, 
+        title: `${hall.shortName}: ${content.title}`, 
+        body: content.body, 
+        date: Date.now() - (idx * 86400000), // Stagger dates
+        hallId: hall.id 
+      })
+    })
+    write(KEYS.notifications, notifications)
   }
-  if (!read(KEYS.applications)) write(KEYS.applications, [])
+  if (!read(KEYS.applications)) {
+    // Seed sample applications for different halls
+    const halls = read(KEYS.halls, [])
+    const users = read(KEYS.users, [])
+    const applications = []
+    
+    halls.forEach((hall, hallIdx) => {
+      // Each hall gets 3-5 sample applications with different statuses
+      const appCount = 3 + (hallIdx % 3)
+      for (let i = 0; i < appCount; i++) {
+        const statuses = ['Submitted', 'Under Review', 'Approved', 'Rejected']
+        const status = statuses[i % statuses.length]
+        const student = users.find(u => u.role === 'student' && u.hallId === hall.id)
+        
+        applications.push({
+          id: `app-${hall.id}-${i}`,
+          userId: student?.id || `student-${hall.shortName}-${i}`,
+          formId: 'form-1',
+          data: {
+            fullName: `Student ${hall.shortName} ${i+1}`,
+            studentId: `${hall.shortName}202${4+hallIdx}-000${i+1}`,
+            department: ['CSE', 'EEE', 'ICE', 'BBA'][i % 4],
+            session: `202${4+hallIdx}-2${5+hallIdx}`
+          },
+          attachments: {},
+          status,
+          createdAt: Date.now() - ((hallIdx * 10 + i) * 86400000),
+          paymentDone: status === 'Approved' && i % 2 === 0,
+          hallId: hall.id
+        })
+      }
+    })
+    
+    write(KEYS.applications, applications)
+  }
   if (!read(KEYS.complaints)) write(KEYS.complaints, [])
   if (!read(KEYS.renewals)) write(KEYS.renewals, [])
   if (!read(KEYS.results)) write(KEYS.results, [])
@@ -120,7 +259,16 @@ export function resetDemoData() {
 }
 
 export function getSessionUser() {
-  return read(KEYS.session, null)
+  // Return session, enriched with latest user info (hallId, studentId) if missing
+  const sess = read(KEYS.session, null)
+  if (!sess) return null
+  if (sess.hallId && sess.studentId !== undefined) return sess
+  const users = read(KEYS.users, [])
+  const u = users.find(x => x.id === sess.id || x.email === sess.email)
+  if (!u) return sess
+  const enriched = { ...sess, hallId: u.hallId ?? sess.hallId, studentId: u.studentId ?? sess.studentId }
+  write(KEYS.session, enriched)
+  return enriched
 }
 export function logout() {
   localStorage.removeItem(KEYS.session)
@@ -129,7 +277,8 @@ export async function login(email, password) {
   const users = read(KEYS.users, [])
   const u = users.find(x => x.email === email && x.password === password)
   if (!u) throw new Error('Invalid credentials')
-  write(KEYS.session, { id: u.id, name: u.name, role: u.role, email: u.email })
+  // Persist hallId and studentId to enable hall-scoped UI (e.g., backgrounds)
+  write(KEYS.session, { id: u.id, name: u.name, role: u.role, email: u.email, hallId: u.hallId ?? null, studentId: u.studentId })
   return getSessionUser()
 }
 export async function register({ name, email, password }) {
@@ -342,11 +491,11 @@ export function clearPendingRegistration() { localStorage.removeItem(PENDING_REG
 
 // Map student ID prefixes to halls
 const HALL_PREFIX_MAP = {
-  MUH: 'hall-bmau', // Bir Muktijuddha Abdul Malek Ukil Hall
-  ASH: 'hall-ash',  // Basha Shaheed Abdus Salam Hall
-  BKH: 'hall-hbk',  // Hazrat Bibi Khadiza Hall
-  JSH: 'hall-jsh',  // July Shaheed Smriti Chhatri Hall
-  NFH: 'hall-nfh'   // Nabab Foyzunnessa Choudhurani Hall
+  MUH: 'hall-muh', // Bir Muktijuddha Abdul Malek Ukil Hall
+  ASH: 'hall-ash', // Basha Shaheed Abdus Salam Hall
+  BKH: 'hall-bkh', // Hazrat Bibi Khadiza Hall
+  JSH: 'hall-jsh', // July Shaheed Smriti Chhatri Hall
+  NFH: 'hall-nfh'  // Nabab Foyzunnessa Choudhurani Hall
 }
 export function deriveHallFromStudentId(studentId) {
   if (!studentId) return null

@@ -2,6 +2,7 @@ import React from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext.jsx'
 import * as api from '../../lib/mockApi.js'
+import { getHallImage } from '../../lib/hallImages.js'
 
 export default function StudentDashboard() {
   const { user } = useAuth()
@@ -17,7 +18,7 @@ export default function StudentDashboard() {
     <div className="grid gap-6">
       {hall && (
         <div className="relative overflow-hidden rounded-lg border min-h-[140px]">
-          <div className="absolute inset-0" style={{ backgroundImage: `url(${hall.img})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+          <div className="absolute inset-0" style={{ backgroundImage: `url(${getHallImage(hall)})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
           <div className="absolute inset-0 bg-black/40" />
           <div className="relative p-4 text-white">
             <div className="text-sm uppercase tracking-wide">Student • My Hall</div>

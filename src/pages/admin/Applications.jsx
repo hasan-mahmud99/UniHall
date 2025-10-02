@@ -28,13 +28,10 @@ export default function Applications() {
   return (
     <div className="grid gap-8">
       {/* Form Builder Section */}
-      <div className="bg-gradient-to-br from-white to-blue-50 border rounded-2xl shadow-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white">
-          <h2 className="text-2xl font-bold flex items-center gap-3">
-            <span className="text-3xl">📋</span>
-            Form Builder & Management
-          </h2>
-          <p className="text-blue-100 mt-2">Create, edit, and publish forms for your hall</p>
+      <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
+          <h2 className="text-xl font-semibold mb-2">Form Builder & Management</h2>
+          <p className="text-blue-100 text-sm">Create, edit, and publish application forms for your hall</p>
         </div>
         
         <div className="p-6">
@@ -58,7 +55,7 @@ export default function Applications() {
               className="px-4 py-2 rounded-lg border-2 border-dashed border-blue-300 text-blue-600 hover:border-blue-500 hover:bg-blue-50 text-sm font-medium transition-all duration-200"
               onClick={() => setSelected({ name: '', schema: [], active: false })}
             >
-              <span className="mr-2">➕</span> Create New Form
+              + Create New Form
             </button>
           </div>
 
@@ -71,25 +68,22 @@ export default function Applications() {
               <div className="mt-6 flex flex-wrap gap-3 pt-4 border-t">
                 {selected?.id && (
                   <button 
-                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium"
                     onClick={() => setActive(selected.id)}
                   >
-                    <span>🚀</span>
                     Publish Form (Set Active)
                   </button>
                 )}
                 <button 
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
                   onClick={() => saveForm(selected?.id ? selected : { name: selected?.name || 'New Form', schema: selected?.schema || [], active: false })}
                 >
-                  <span>💾</span>
                   Save Form to Hall
                 </button>
                 <button 
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+                  className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium"
                   onClick={() => window.open('/student/form', '_blank')}
                 >
-                  <span>👁️</span>
                   Preview Form
                 </button>
               </div>
@@ -99,19 +93,18 @@ export default function Applications() {
       </div>
 
       {/* Applications Management */}
-      <div className="bg-white border rounded-2xl shadow-xl overflow-hidden">
-        <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-6 text-white">
-          <h2 className="text-2xl font-bold flex items-center gap-3">
-            <span className="text-3xl">📝</span>
-            Student Applications
-          </h2>
-          <p className="text-gray-300 mt-2">Review and manage incoming applications</p>
+      <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-gray-700 to-gray-800 p-6 text-white">
+          <h2 className="text-xl font-semibold mb-2">Student Applications</h2>
+          <p className="text-gray-300 text-sm">Review and manage incoming applications</p>
         </div>
         
         <div className="p-6">
           {apps.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-6xl mb-4">📄</div>
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-8 h-8 bg-gray-300 rounded"></div>
+              </div>
               <h3 className="text-lg font-medium text-gray-800 mb-2">No Applications Yet</h3>
               <p className="text-gray-600">Applications will appear here once students start submitting forms.</p>
             </div>
@@ -145,7 +138,7 @@ export default function Applications() {
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                           a.paymentDone ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}>
-                          {a.paymentDone ? '✓ Paid' : '✗ Unpaid'}
+                          {a.paymentDone ? 'Paid' : 'Unpaid'}
                         </span>
                       </td>
                       <td className="p-4 text-sm text-gray-600">{a.hallId || '-'}</td>
@@ -155,19 +148,19 @@ export default function Applications() {
                             className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs font-medium transition-colors"
                             onClick={() => updateStatus(a.id, 'Under Review')}
                           >
-                            🔍 Review
+                            Review
                           </button>
                           <button 
                             className="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-xs font-medium transition-colors"
                             onClick={() => updateStatus(a.id, 'Approved')}
                           >
-                            ✓ Approve
+                            Approve
                           </button>
                           <button 
                             className="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-xs font-medium transition-colors"
                             onClick={() => updateStatus(a.id, 'Rejected')}
                           >
-                            ✗ Reject
+                            Reject
                           </button>
                           <button 
                             className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
@@ -177,7 +170,7 @@ export default function Applications() {
                             }`}
                             onClick={() => setPaid(a.id, !a.paymentDone)}
                           >
-                            {a.paymentDone ? '💳 Unmark' : '💵 Mark Paid'}
+                            {a.paymentDone ? 'Unmark Payment' : 'Mark as Paid'}
                           </button>
                         </div>
                       </td>
