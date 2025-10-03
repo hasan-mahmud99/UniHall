@@ -1,187 +1,216 @@
 import React, { useState } from 'react'
 import * as api from '../../lib/mockApi.js'
 import { useAuth } from '../../context/AuthContext.jsx'
-import FormBuilder from '../../components/FormBuilder.jsx'
 
 export default function Applications() {
   const { user } = useAuth()
   const hallId = user?.hallId ?? null
-  const [forms, setForms] = useState(api.listForms({ hallId }))
-  const apps = api.listApplications({ hallId })
-  const [selected, setSelected] = useState(forms[0] || null)
+  const forms = api.listForms({ hallId })
+  const [selectedFormId, setSelectedFormId] = useState(null)
+  
+  // Get all applications for this hall
+  const allApps = api.listApplications({ hallId })
+  
+  // Filter by selected form if one is chosen
+  const apps = selectedFormId 
+    ? allApps.filter(app => app.formId === selectedFormId)
+    : allApps
 
-  const saveForm = (f) => {
-    const payload = { ...f, hallId }
-    const saved = f.id ? api.saveForm(payload) : api.createForm(payload)
-    if (saved.active) api.setActiveForm(saved.id, hallId)
-    setForms(api.listForms({ hallId }))
-    setSelected(saved)
-  }
-  const setActive = (id) => {
-    api.setActiveForm(id, hallId)
-    setForms(api.listForms({ hallId }))
-  }
+  console.log('Admin Hall ID:', hallId)
+  console.log('All Applications:', allApps)
+  console.log('Forms:', forms)
+  console.log('Filtered Apps:', apps)
 
-  const updateStatus = (id, status) => { api.updateApplicationStatus(id, status); window.location.reload() }
-  const setPaid = (id, paid) => { api.markPayment(id, paid); window.location.reload() }
+  const updateStatus = (id, status) => { 
+    api.updateApplicationStatus(id, status)
+    window.location.reload() 
+  }
+  
+  const setPaid = (id, paid) => { 
+    api.markPayment(id, paid)
+    window.location.reload() 
+  }
 
   return (
-    <div className="grid gap-8">
-      {/* Form Builder Section */}
-      <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
-          <h2 className="text-xl font-semibold mb-2">Form Builder & Management</h2>
-          <p className="text-blue-100 text-sm">Create, edit, and publish application forms for your hall</p>
-        </div>
-        
-        <div className="p-6">
-          {/* Form Tabs */}
-          <div className="flex flex-wrap gap-3 mb-6">
-            {forms.map(f => (
-              <button 
-                key={f.id} 
-                className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all duration-200 ${
-                  selected?.id === f.id 
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white border-transparent shadow-lg' 
-                    : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-blue-300'
-                }`} 
-                onClick={() => setSelected(f)}
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Student Applications</h1>
+        <p className="text-gray-600">Review and manage submitted applications</p>
+      </div>
+
+      {/* Debug Info */}
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm">
+        <div><strong>Debug Info:</strong></div>
+        <div>Your Hall ID: {hallId || 'None'}</div>
+        <div>Total Applications: {allApps.length}</div>
+        <div>Forms Available: {forms.length}</div>
+        <div>Filtered Applications: {apps.length}</div>
+      </div>
+
+      {/* Form Filter */}
+      {forms.length > 0 && (
+        <div className="bg-white border-2 border-gray-300 rounded-lg p-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Form:</label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedFormId(null)}
+              className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                selectedFormId === null
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+              }`}
+            >
+              All Forms
+            </button>
+            {forms.map(form => (
+              <button
+                key={form.id}
+                onClick={() => setSelectedFormId(form.id)}
+                className={`px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                  selectedFormId === form.id
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                }`}
               >
-                {f.name} 
-                {f.active && <span className="ml-2 px-2 py-0.5 bg-green-400 text-white text-xs rounded-full">LIVE</span>}
+                {form.title || form.name}
+                {form.active && (
+                  <span className="ml-2 px-2 py-0.5 bg-green-500 text-white text-xs rounded-full">
+                    Active
+                  </span>
+                )}
               </button>
             ))}
-            <button 
-              className="px-4 py-2 rounded-lg border-2 border-dashed border-blue-300 text-blue-600 hover:border-blue-500 hover:bg-blue-50 text-sm font-medium transition-all duration-200"
-              onClick={() => setSelected({ name: '', schema: [], active: false })}
-            >
-              + Create New Form
-            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Applications List */}
+      <div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Applications ({apps.length})
+        </h2>
+        
+        {apps.length === 0 ? (
+          <div className="bg-gray-50 rounded-lg p-8 text-center">
+            <p className="text-gray-600">
+              {selectedFormId 
+                ? 'No applications received for this form yet.'
+                : 'No applications received yet.'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {apps.map(app => (
+              <ApplicationCard
+                key={app.id}
+                app={app}
+                onStatusChange={updateStatus}
+                onPaymentChange={setPaid}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ApplicationCard({ app, onStatusChange, onPaymentChange }) {
+  const [expanded, setExpanded] = useState(false)
+  const user = api.getUserById(app.userId)
+  const form = api.getFormById(app.formId)
+  
+  const statusColors = {
+    Pending: 'bg-yellow-100 text-yellow-800 border-yellow-300',
+    Approved: 'bg-green-100 text-green-800 border-green-300',
+    Rejected: 'bg-red-100 text-red-800 border-red-300',
+  }
+
+  return (
+    <div className="bg-white border-2 border-gray-300 rounded-lg p-5">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="text-lg font-semibold text-gray-900">{user?.name || 'Unknown Student'}</h3>
+            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${statusColors[app.status]}`}>
+              {app.status}
+            </span>
+            {app.paymentDone && (
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 border border-blue-300 rounded-full text-xs font-medium">
+                Paid
+              </span>
+            )}
+          </div>
+          <div className="text-sm text-gray-600">
+            Form: {form?.title || form?.name || 'Unknown Form'} • Submitted: {new Date(app.createdAt).toLocaleString()}
+          </div>
+          <div className="text-sm text-gray-600">
+            Email: {user?.email || 'N/A'}
+          </div>
+        </div>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+        >
+          {expanded ? 'Hide Details ▲' : 'View Details ▼'}
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="border-t pt-4 mt-4 space-y-4">
+          {/* Application Data */}
+          <div className="bg-gray-50 rounded-lg p-4">
+            <h4 className="font-medium text-gray-900 mb-3">Submitted Information:</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {Object.entries(app.data || {}).map(([key, value]) => (
+                <div key={key} className="text-sm">
+                  <span className="font-medium text-gray-700">{key}:</span>{' '}
+                  <span className="text-gray-900">{value}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Form Builder */}
-          {selected && (
-            <div className="bg-white rounded-xl border p-6 shadow-sm">
-              <FormBuilder form={selected?.id ? selected : null} onSave={saveForm} />
-              
-              {/* Action Buttons */}
-              <div className="mt-6 flex flex-wrap gap-3 pt-4 border-t">
-                {selected?.id && (
-                  <button 
-                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-medium"
-                    onClick={() => setActive(selected.id)}
-                  >
-                    Publish Form (Set Active)
-                  </button>
-                )}
-                <button 
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium"
-                  onClick={() => saveForm(selected?.id ? selected : { name: selected?.name || 'New Form', schema: selected?.schema || [], active: false })}
-                >
-                  Save Form to Hall
-                </button>
-                <button 
-                  className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium"
-                  onClick={() => window.open('/student/form', '_blank')}
-                >
-                  Preview Form
-                </button>
-              </div>
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2">
+            <div className="flex gap-2">
+              <button
+                onClick={() => onStatusChange(app.id, 'Approved')}
+                disabled={app.status === 'Approved'}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                Approve
+              </button>
+              <button
+                onClick={() => onStatusChange(app.id, 'Rejected')}
+                disabled={app.status === 'Rejected'}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                Reject
+              </button>
+              <button
+                onClick={() => onStatusChange(app.id, 'Pending')}
+                disabled={app.status === 'Pending'}
+                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                Mark Pending
+              </button>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Applications Management */}
-      <div className="bg-white border rounded-lg shadow-sm overflow-hidden">
-        <div className="bg-gradient-to-r from-gray-700 to-gray-800 p-6 text-white">
-          <h2 className="text-xl font-semibold mb-2">Student Applications</h2>
-          <p className="text-gray-300 text-sm">Review and manage incoming applications</p>
-        </div>
-        
-        <div className="p-6">
-          {apps.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <div className="w-8 h-8 bg-gray-300 rounded"></div>
-              </div>
-              <h3 className="text-lg font-medium text-gray-800 mb-2">No Applications Yet</h3>
-              <p className="text-gray-600">Applications will appear here once students start submitting forms.</p>
+            <div className="flex gap-2 ml-auto">
+              <button
+                onClick={() => onPaymentChange(app.id, !app.paymentDone)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  app.paymentDone
+                    ? 'bg-gray-600 text-white hover:bg-gray-700'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {app.paymentDone ? 'Mark Unpaid' : 'Mark Paid'}
+              </button>
             </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="bg-gray-50 border-b">
-                    <th className="text-left p-4 font-semibold text-gray-700">Application ID</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Status</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Payment</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Hall</th>
-                    <th className="text-left p-4 font-semibold text-gray-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {apps.map(a => (
-                    <tr key={a.id} className="border-b hover:bg-gray-50 transition-colors">
-                      <td className="p-4 font-mono text-sm">{a.id}</td>
-                      <td className="p-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          a.status === 'Approved' ? 'bg-green-100 text-green-800' :
-                          a.status === 'Rejected' ? 'bg-red-100 text-red-800' :
-                          a.status === 'Under Review' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {a.status}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          a.paymentDone ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {a.paymentDone ? 'Paid' : 'Unpaid'}
-                        </span>
-                      </td>
-                      <td className="p-4 text-sm text-gray-600">{a.hallId || '-'}</td>
-                      <td className="p-4">
-                        <div className="flex flex-wrap gap-1">
-                          <button 
-                            className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs font-medium transition-colors"
-                            onClick={() => updateStatus(a.id, 'Under Review')}
-                          >
-                            Review
-                          </button>
-                          <button 
-                            className="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-xs font-medium transition-colors"
-                            onClick={() => updateStatus(a.id, 'Approved')}
-                          >
-                            Approve
-                          </button>
-                          <button 
-                            className="px-3 py-1 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 text-xs font-medium transition-colors"
-                            onClick={() => updateStatus(a.id, 'Rejected')}
-                          >
-                            Reject
-                          </button>
-                          <button 
-                            className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                              a.paymentDone 
-                                ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' 
-                                : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                            }`}
-                            onClick={() => setPaid(a.id, !a.paymentDone)}
-                          >
-                            {a.paymentDone ? 'Unmark Payment' : 'Mark as Paid'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

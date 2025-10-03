@@ -30,15 +30,25 @@ export function ensureSeedData() {
   // NSTU Halls of Residence (official data from nstu.edu.bd)
   const masterHalls = [
     { id: 'hall-ash', name: 'Basha Shaheed Abdus Salam Hall', shortName: 'ASH', category: 'Male', capacity: 400, established: 2006,
-      localImg: '/halls/ASH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/ASH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1520637736862-4d197d17c155?w=800' },
+      localImg: '/halls/ASH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/ASH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1520637736862-4d197d17c155?w=800',
+      provost: { name: 'Md. Farid Dewan', phone: '+8801717386048', email: 'provost.ash@nstu.edu.bd' },
+      address: 'Basha Shaheed Abdus Salam Hall, NSTU Campus, Sonapur, Noakhali-3814' },
     { id: 'hall-muh', name: 'Bir Muktijuddha Abdul Malek Ukil Hall', shortName: 'MUH', category: 'Male', capacity: 350, established: 2010,
-      localImg: '/halls/MUH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/MUH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800' },
+      localImg: '/halls/MUH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/MUH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
+      provost: { name: 'Hall Provost', phone: '+880-XXXX-XXXXXX', email: 'provost.muh@nstu.edu.bd' },
+      address: 'Bir Muktijuddha Abdul Malek Ukil Hall, NSTU Campus, Sonapur, Noakhali-3814' },
     { id: 'hall-bkh', name: 'Hazrat Bibi Khadiza Hall', shortName: 'BKH', category: 'Female', capacity: 300, established: 2008,
-      localImg: '/halls/BKH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/BKH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800' },
+      localImg: '/halls/BKH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/BKH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?w=800',
+      provost: { name: 'Hall Provost', phone: '+880-XXXX-XXXXXX', email: 'provost.bkh@nstu.edu.bd' },
+      address: 'Hazrat Bibi Khadiza Hall, NSTU Campus, Sonapur, Noakhali-3814' },
     { id: 'hall-jsh', name: 'July Shaheed Smriti Chhatri Hall', shortName: 'JSH', category: 'Female', capacity: 280, established: 2012,
-      localImg: '/halls/BMH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/JSH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800' },
+      localImg: '/halls/BMH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/JSH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800',
+      provost: { name: 'Hall Provost', phone: '+880-XXXX-XXXXXX', email: 'provost.jsh@nstu.edu.bd' },
+      address: 'July Shaheed Smriti Chhatri Hall, NSTU Campus, Sonapur, Noakhali-3814' },
     { id: 'hall-nfh', name: 'Nabab Foyzunnessa Choudhurani Hall', shortName: 'NFH', category: 'Female', capacity: 320, established: 2014,
-      localImg: '/halls/FMH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/NFH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800' }
+      localImg: '/halls/FMH.jpg', img: 'https://nstu.edu.bd/assets/images/accommodation/NFH.jpg', fallbackImg: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800',
+      provost: { name: 'Hall Provost', phone: '+880-XXXX-XXXXXX', email: 'provost.nfh@nstu.edu.bd' },
+      address: 'Nabab Foyzunnessa Choudhurani Hall, NSTU Campus, Sonapur, Noakhali-3814' }
   ]
   if (!read(KEYS.halls)) {
     write(KEYS.halls, masterHalls)
@@ -301,7 +311,18 @@ export async function register({ name, email, password }) {
   return getSessionUser()
 }
 
+// User queries
+export function getUserById(userId) {
+  const users = read(KEYS.users, [])
+  return users.find(u => u.id === userId) || null
+}
+
 // Forms
+export function getFormById(formId) {
+  const forms = read(KEYS.forms, [])
+  return forms.find(f => f.id === formId) || null
+}
+
 export function getActiveFormForHall(hallId) {
   const forms = read(KEYS.forms, [])
   // Prefer hall-specific active form, else a global active form
@@ -348,6 +369,7 @@ export function listApplications(filter = {}) {
   let apps = read(KEYS.applications, [])
   if (filter.userId) apps = apps.filter(a => a.userId === filter.userId)
   if (filter.hallId) apps = apps.filter(a => a.hallId === filter.hallId)
+  if (filter.formId) apps = apps.filter(a => a.formId === filter.formId)
   return apps
 }
 export function updateApplicationStatus(id, status) {
@@ -421,23 +443,46 @@ export function createNotification(title, body, hallId) {
   return n
 }
 
-// Complaints
-export function createComplaint({ userId, title, body }) {
+// Complaints (hall-specific, only students can file)
+export function createComplaint({ userId, title, body, attachments }) {
+  const users = read(KEYS.users, [])
+  const user = users.find(u => u.id === userId)
+  if (!user || user.role !== 'student') throw new Error('Only students can file complaints')
+  
   const list = read(KEYS.complaints, [])
-  const c = { id: `c-${Date.now()}`, userId, title, body, status: 'Open', createdAt: Date.now() }
+  const c = { 
+    id: `c-${Date.now()}`, 
+    userId, 
+    hallId: user.hallId, // Complaint tied to student's hall
+    title, 
+    body, 
+    attachments: attachments || [], // Array of file names/URLs
+    status: 'Open', 
+    createdAt: Date.now(),
+    reviewedBy: null,
+    reviewNotes: ''
+  }
   list.push(c)
   write(KEYS.complaints, list)
   return c
 }
+
 export function listComplaints(filter = {}) {
   let list = read(KEYS.complaints, [])
   if (filter.userId) list = list.filter(c => c.userId === filter.userId)
+  if (filter.hallId) list = list.filter(c => c.hallId === filter.hallId)
   return list
 }
-export function updateComplaintStatus(id, status) {
+
+export function updateComplaintStatus(id, status, reviewedBy, reviewNotes) {
   const list = read(KEYS.complaints, [])
   const c = list.find(x => x.id === id)
-  if (c) c.status = status
+  if (c) {
+    c.status = status
+    if (reviewedBy) c.reviewedBy = reviewedBy
+    if (reviewNotes) c.reviewNotes = reviewNotes
+    c.updatedAt = Date.now()
+  }
   write(KEYS.complaints, list)
   return c
 }

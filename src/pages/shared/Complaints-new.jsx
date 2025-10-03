@@ -34,7 +34,7 @@ export default function Complaints() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                File Complaint
+                📝 File Complaint
               </button>
               <button
                 onClick={() => setActiveTab('my-complaints')}
@@ -44,7 +44,7 @@ export default function Complaints() {
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                My Complaints
+                📋 My Complaints
               </button>
             </>
           )}
@@ -58,7 +58,7 @@ export default function Complaints() {
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
               }`}
             >
-              Review Complaints
+              🔍 Review Complaints
             </button>
           )}
         </nav>

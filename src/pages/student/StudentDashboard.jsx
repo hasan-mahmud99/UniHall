@@ -42,6 +42,11 @@ export default function StudentDashboard() {
           <Link to="/student/form" className="text-brand-700 text-sm">Go to form →</Link>
         </div>
         <div className="bg-white border rounded p-4">
+          <h3 className="font-medium mb-2">Complaints</h3>
+          <p className="text-sm text-gray-600 mb-3">File or view your hall complaints.</p>
+          <Link to="/complaints" className="text-brand-700 text-sm">Go to complaints →</Link>
+        </div>
+        <div className="bg-white border rounded p-4">
           <h3 className="font-medium mb-2">My Applications</h3>
           {apps.length === 0 ? (
             <p className="text-sm text-gray-600">No applications yet.</p>
