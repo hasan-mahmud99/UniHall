@@ -14,8 +14,7 @@ Open the URL printed (default http://localhost:5173).
 
 ## Default accounts
 
-- Admin: `admin@nstu.edu.bd` / `admin123` (assigned to one hall)
-- Student: register from the Register page using `@student.nstu.edu.bd`
+- See ADMIN_CREDENTIALS.md
 
 ## Features implemented
 
