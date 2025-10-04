@@ -22,7 +22,6 @@ import StaffDashboard from './pages/staff/StaffDashboard.jsx'
 
 function Nav() {
   const { user, logout } = useAuth()
-  const doReset = () => { api.resetDemoData(); window.location.reload() }
   
   return (
     <header className="bg-white border-b sticky top-0 z-10">
@@ -39,7 +38,6 @@ function Nav() {
             <>
               <span className="text-sm text-gray-700">{user.name} ({user.role})</span>
               <button onClick={logout} className="text-sm text-red-600 hover:underline">Logout</button>
-              <button onClick={doReset} className="text-sm text-gray-500 hover:underline" title="Reset demo data">Reset</button>
             </>
           ) : (
             <div className="flex items-center gap-3">

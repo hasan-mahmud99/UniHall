@@ -6,6 +6,7 @@ const KEYS = {
   forms: 'uh_forms',
   applications: 'uh_applications',
   seats: 'uh_seats',
+  waitlist: 'uh_waitlist',
   complaints: 'uh_complaints',
   notifications: 'uh_notifications',
   renewals: 'uh_renewals',
@@ -246,8 +247,98 @@ export function ensureSeedData() {
     
     write(KEYS.applications, applications)
   }
-  if (!read(KEYS.complaints)) write(KEYS.complaints, [])
-  if (!read(KEYS.renewals)) write(KEYS.renewals, [])
+  
+  // Seed demo complaints with actions/status (force reseed if empty)
+  const existingComplaints = read(KEYS.complaints, [])
+  if (existingComplaints.length === 0) {
+    const halls = read(KEYS.halls, [])
+    const users = read(KEYS.users, [])
+    const complaints = []
+    
+    halls.forEach((hall, hallIdx) => {
+      const student = users.find(u => u.role === 'student' && u.hallId === hall.id)
+      
+      // Add 2 demo complaints per hall with different statuses
+      complaints.push({
+        id: `complaint-${hall.id}-1`,
+        userId: student?.id || `student-${hall.shortName}-1`,
+        hallId: hall.id,
+        subject: 'Water Supply Issue',
+        description: 'There is no water supply in the 3rd floor bathroom for the last 2 days.',
+        status: 'Resolved',
+        response: 'Water pump has been fixed. Supply restored on 2nd Oct.',
+        createdAt: Date.now() - (7 * 86400000), // 7 days ago
+        resolvedAt: Date.now() - (2 * 86400000) // 2 days ago
+      })
+      
+      complaints.push({
+        id: `complaint-${hall.id}-2`,
+        userId: student?.id || `student-${hall.shortName}-2`,
+        hallId: hall.id,
+        subject: 'Electricity Problem in Room 305',
+        description: 'Power socket not working. Need urgent repair for study purposes.',
+        status: 'In Progress',
+        response: 'Electrician has been notified. Will be fixed within 24 hours.',
+        createdAt: Date.now() - (1 * 86400000), // 1 day ago
+        resolvedAt: null
+      })
+    })
+    
+    write(KEYS.complaints, complaints)
+  }
+  
+  // Seed demo renewals (force reseed if empty)
+  const existingRenewals = read(KEYS.renewals, [])
+  if (existingRenewals.length === 0) {
+    const halls = read(KEYS.halls, [])
+    const users = read(KEYS.users, [])
+    const renewals = []
+    
+    halls.forEach((hall, hallIdx) => {
+      const students = users.filter(u => u.role === 'student' && u.hallId === hall.id)
+      
+      students.slice(0, 2).forEach((student, idx) => {
+        renewals.push({
+          id: `renewal-${hall.id}-${idx}`,
+          userId: student.id,
+          hallId: hall.id,
+          status: idx === 0 ? 'Approved' : 'Pending',
+          requestedAt: Date.now() - ((idx + 1) * 5 * 86400000),
+          approvedAt: idx === 0 ? Date.now() - (2 * 86400000) : null
+        })
+      })
+    })
+    
+    write(KEYS.renewals, renewals)
+  }
+  
+  // Seed demo waitlist entries (force reseed if empty)
+  const existingWaitlist = read(KEYS.waitlist, [])
+  if (existingWaitlist.length === 0) {
+    const halls = read(KEYS.halls, [])
+    const waitlist = []
+    
+    halls.forEach((hall, hallIdx) => {
+      // Add 2-3 waitlist entries per hall
+      for (let i = 0; i < 2; i++) {
+        waitlist.push({
+          id: `waitlist-${hall.id}-${i}`,
+          studentName: `Waitlist Student ${hall.shortName} ${i+1}`,
+          studentId: `${hall.shortName}202${5+hallIdx}-W00${i+1}`,
+          email: `waitlist${i+1}.${hall.shortName.toLowerCase()}@student.nstu.edu.bd`,
+          phone: `017${hallIdx}${i}000000`,
+          department: ['CSE', 'EEE', 'ICE', 'BBA', 'MBA'][i % 5],
+          session: `202${5+hallIdx}-2${6+hallIdx}`,
+          position: i + 1,
+          hallId: hall.id,
+          addedAt: Date.now() - ((i + 1) * 3 * 86400000) // Staggered dates
+        })
+      }
+    })
+    
+    write(KEYS.waitlist, waitlist)
+  }
+  
   if (!read(KEYS.results)) write(KEYS.results, [])
   if (!read(KEYS.seatPlanUploads)) write(KEYS.seatPlanUploads, [])
 

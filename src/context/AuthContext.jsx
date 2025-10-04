@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import * as api from '../lib/mockApi.js'
 
 const AuthContext = createContext(null)
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(api.getSessionUser())
+  const navigate = useNavigate()
 
   useEffect(() => {
     api.ensureSeedData()
@@ -23,6 +25,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     api.logout()
     setUser(null)
+    navigate('/')
   }
 
   const value = useMemo(() => ({ user, login, logout, register }), [user])
