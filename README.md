@@ -113,6 +113,9 @@ npm run dev
 ```
 
 Open the Vite URL shown in terminal (default: http://localhost:5173).
+## Credential
+
+ - For Admin Credential visit ADMIN_CREDENTIALS.md
 
 ## Available Scripts
 
@@ -132,7 +135,3 @@ Open the Vite URL shown in terminal (default: http://localhost:5173).
 - Do not commit real .env values or Firebase service account JSON keys.
 - Uploaded files are generated at runtime under uploads/ and should not be versioned.
 - If SMTP is not configured, set EMAIL_DEBUG_LOG_OTP=true for local OTP debugging.
-
-## License
-
-This project is currently unlicensed. Add a LICENSE file if you plan to open-source it.
