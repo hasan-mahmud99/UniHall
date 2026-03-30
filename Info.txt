@@ -1,0 +1,99 @@
+UniHall Project Summary (NSTU Hall Allotment System)
+🎯 Purpose
+
+A web-based hall seat allotment and management system for Noakhali Science and Technology University (NSTU), replacing the manual, paper-based process with a transparent, automated, and efficient digital solution.
+UniHall – Frontend Features Summary
+🔹 User Roles
+
+Student
+
+Register/Login
+
+Fill up dynamic application forms (fields built by Admin).
+
+View their application status (Submitted, Under Review, etc.).
+
+Get notified (Renewal available, Payment reminder, etc.).
+
+Apply for renewal (only when notified).
+
+Submit complaints with status tracking (Open → Resolved).
+
+Join waitlist if they haven’t paid to confirm seat.
+
+Admin
+
+Dashboard with quick stats.
+
+Dynamic Form Builder (create forms with fields: text, number, date, dropdown, checkbox, etc.).
+
+View and manage applications (shortlist, approve, reject).
+
+Handle seat allotment:
+
+See Seat Plan (graphical or tabular view).
+
+Mark seat as Available, Occupied, Reserved, Maintenance.
+
+Manage renewals (approve/reject requests).
+
+Handle complaints (track + update statuses).
+
+View waitlist and confirm students after payment.
+
+Send notifications (to all students or specific ones).
+
+🔹 Core Functionalities
+📝 Dynamic Form System
+
+Admin creates forms (e.g., "Hall Admission Form").
+
+Student sees and fills that latest form.
+
+Forms saved as JSON schema in DB (with FieldType enum).
+
+Flexible: Admin can create new forms for each session without code changes.
+
+🏠 Hall Seat Management
+
+Admin-only seat plan view (not visible to students).
+
+Seat statuses: Available, Occupied, Maintenance, Reserved.
+
+Assign/Update seat for selected student.
+
+⏳ Waitlist
+
+Students who didn’t pay after getting approved go into waitlist.
+
+Admin can confirm/reject them later.
+
+🔄 Renewal
+
+Renewal option shown to student only after current period expires.
+
+Admin can approve/reject renewal request.
+
+Students get notified when renewal window opens.
+
+📢 Notifications
+
+Admin can push notices (like hall announcements, renewal reminders).
+
+Student dashboard shows notification panel.
+
+🛠 Complaint System
+
+Student files complaint.
+
+Admin updates complaint status (Open → In Progress → Resolved → Closed).
+
+Student can see progress.
+
+🔹 Tech Stack (Frontend)
+
+HTML, CSS, TailwindCSS → UI styling
+
+React → Component-based dynamic UI
+
+JavaScript → Logic handling

@@ -1,0 +1,31 @@
+# Node dependencies
+node_modules/
+**/node_modules/
+
+# Build output and caches
+dist/
+**/dist/
+.vite/
+**/.vite/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+**/.env
+
+# OS/editor
+.DS_Store
+Thumbs.db
+
+# Runtime uploads
+uploads/
+Backend/uploads/
+
+# Secrets
+Backend/*firebase-adminsdk*.json
